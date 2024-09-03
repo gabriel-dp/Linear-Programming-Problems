@@ -1,0 +1,7 @@
+# Executable and objects
+**/*.o
+**/*.exe
+
+# Editor configs
+.vscode/**
+!.vscode/c_cpp_properties.json
