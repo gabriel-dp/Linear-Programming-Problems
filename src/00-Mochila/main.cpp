@@ -12,7 +12,7 @@ struct item {
     int id, valor, peso;
 };
 
-int N, B;
+int quantidade_itens, capacidade;
 vector<item> itens;
 
 void cplex() {
@@ -25,7 +25,7 @@ void cplex() {
 
     // Uma variável binaria para cada mochila
     IloNumVarArray x(env);
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < quantidade_itens; i++) {
         x.add(IloIntVar(env, 0, 1));
         numberVar++;
     }
@@ -40,7 +40,7 @@ void cplex() {
     // Funcao objetivo -----------------------------
     // Maximizar o valor dos itens na mochila
     sum.clear();
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < quantidade_itens; i++) {
         sum += (itens[i].valor * x[i]);
     }
     model.add(IloMaximize(env, sum));
@@ -50,10 +50,10 @@ void cplex() {
 
     // Limite de peso
     sum.clear();
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < quantidade_itens; i++) {
         sum += (itens[i].peso * x[i]);
     }
-    model.add(sum <= B);
+    model.add(sum <= capacidade);
     numberRes++;
 
     /*  --------------------------------------
@@ -96,7 +96,7 @@ void cplex() {
         runTime = difftime(timer2, timer);
 
         cout << "Variaveis de decisao: " << endl;
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < quantidade_itens; i++) {
             value = IloRound(cplex.getValue(x[i]));
             printf("x[%d]: %.0lf\n", i, value);
         }
@@ -104,7 +104,7 @@ void cplex() {
         printf("\n");
 
         cout << "Funcao Objetivo Valor = " << objValue << endl;
-        printf("..(%.6lf seconds).\n\n", runTime);
+        printf("(%.6lf seconds)\n", runTime);
     }
 
     /*  -----------------------------------------
@@ -119,11 +119,11 @@ void cplex() {
 
 int main() {
     // Primeira linha
-    cin >> N >> B;
-    itens.resize(N);
+    cin >> quantidade_itens >> capacidade;
+    itens.resize(quantidade_itens);
 
     // N linhas dos itens
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < quantidade_itens; i++) {
         cin >> itens[i].peso >> itens[i].valor;
         itens[i].id = i + 1;
     }
