@@ -1,6 +1,8 @@
 #include <bits/stdc++.h>
 #include <ilcplex/ilocplex.h>
 
+#define INFINITO -1
+
 using namespace std;
 ILOSTLBEGIN
 
@@ -11,9 +13,9 @@ typedef struct {
 int quantidade_vertices, quantidade_arestas;
 unordered_map<int, string> vertice_label;
 unordered_map<string, int> vertice_id;
-map<int, map<int, Aresta>> grafo;
-map<int, int> S, D;
-set<int> T;
+unordered_map<int, unordered_map<int, Aresta>> grafo;
+unordered_map<int, int> S, D;
+unordered_set<int> T;
 
 void cplex() {
     IloEnv env;
@@ -21,21 +23,13 @@ void cplex() {
     /*  --------------------------------------------------
      *  Variaveis de decisao -----------------------------
      */
-    int numberVar = 0;
 
-    // Uma variável binaria para cada mochila
+    // Uma variável para cada possivel aresta, mesmo que nao exista
     IloArray<IloNumVarArray> x(env);
     for (int i = 0; i < quantidade_vertices; i++) {
         x.add(IloNumVarArray(env));
-
-        auto destinos = grafo.find(i)->second;
         for (int j = 0; j < quantidade_vertices; j++) {
-            if (destinos.find(j) != destinos.end()) {
-                x[i].add(IloIntVar(env, 0, INT_MAX));
-            } else {
-                x[i].add(IloIntVar(env, INFINITY, INFINITY));
-            }
-            numberVar++;
+            x[i].add(IloIntVar(env, 0, INT_MAX));
         }
     }
 
@@ -43,8 +37,7 @@ void cplex() {
      *  Modelo -----------------------------
      */
     IloModel model(env);
-    IloExpr sum(env);
-    IloExpr sum2(env);
+    IloExpr sum(env), sum2(env);
 
     // Funcao objetivo -----------------------------
     // Minimizar custo total de transporte
@@ -54,30 +47,26 @@ void cplex() {
             sum += destino.second.custo * x[origem.first][destino.first];
         }
     }
-    model.add(IloMaximize(env, sum));
+    model.add(IloMinimize(env, sum));
 
     // Restricoes -----------------------------
-    int numberRes = 0;
 
     // Oferta
     for (auto s : S) {
         sum.clear();
         sum2.clear();
 
-        auto destinos_s = grafo.find(s.first)->second;
-        for (auto destino : destinos_s) {
+        for (auto destino : grafo.find(s.first)->second) {
             sum += x[s.first][destino.first];
         }
 
         for (auto origem : grafo) {
-            auto possivel_origem_s = origem.second.find(s.first);
-            if (possivel_origem_s != origem.second.end()) {
-                sum2 += x[possivel_origem_s->first][s.first];
+            if (origem.second.find(s.first) != origem.second.end()) {
+                sum2 += x[origem.first][s.first];
             }
         }
 
         model.add(sum - sum2 <= s.second);
-        numberRes++;
     }
 
     // Demanda
@@ -85,20 +74,17 @@ void cplex() {
         sum.clear();
         sum2.clear();
 
-        auto destinos_d = grafo.find(d.first)->second;
-        for (auto destino : destinos_d) {
+        for (auto destino : grafo.find(d.first)->second) {
             sum += x[d.first][destino.first];
         }
 
         for (auto origem : grafo) {
-            auto possivel_origem_d = origem.second.find(d.first);
-            if (possivel_origem_d != origem.second.end()) {
-                sum2 += x[possivel_origem_d->first][d.first];
+            if (origem.second.find(d.first) != origem.second.end()) {
+                sum2 += x[origem.first][d.first];
             }
         }
 
         model.add(sum - sum2 <= -d.second);
-        numberRes++;
     }
 
     // Conservacao fluxo
@@ -106,32 +92,28 @@ void cplex() {
         sum.clear();
         sum2.clear();
 
-        auto destinos_t = grafo.find(t)->second;
-        for (auto destino : destinos_t) {
+        for (auto destino : grafo.find(t)->second) {
             sum += x[t][destino.first];
         }
 
         for (auto origem : grafo) {
-            auto possivel_origem_t = origem.second.find(t);
-            if (possivel_origem_t != origem.second.end()) {
-                sum2 += x[possivel_origem_t->first][t];
+            if (origem.second.find(t) != origem.second.end()) {
+                sum2 += x[origem.first][t];
             }
         }
 
         model.add(sum - sum2 == 0);
-        numberRes++;
     }
 
     // Capacidades
-    for (auto origem : grafo) {
-        for (auto destino : origem.second) {
-            model.add(x[origem.first][destino.first] <= destino.second.maximo);
-            numberRes++;
+    for (int i = 0; i < quantidade_vertices; i++) {
+        for (int j = 0; j < quantidade_vertices; j++) {
+            auto destino = grafo[i].find(j);
+            if (destino != grafo[i].end() && destino->second.maximo != INFINITO) {
+                model.add(x[i][destino->first] <= destino->second.maximo);
+            }
         }
     }
-
-    cout << "\n\n"
-         << model.getName() << "\n\n";
 
     /*  --------------------------------------
      *  Execucao -----------------------------
@@ -139,8 +121,6 @@ void cplex() {
     IloCplex cplex(model);
 
     time_t timer, timer2;
-    IloNum value, objValue;
-    double runTime;
     string status;
 
     time(&timer);
@@ -165,28 +145,32 @@ void cplex() {
     }
 
     cout << endl
-         << endl
-         << "Status da FO: " << status << endl;
+         << "Status da solucao: " << status << endl
+         << endl;
 
     if (sol) {
-        objValue = cplex.getObjValue();
-        runTime = difftime(timer2, timer);
+        IloNum objValue = cplex.getObjValue();
 
         cout << "Variaveis de decisao: " << endl;
-        for (int i = 1; i <= quantidade_vertices; i++) {
-            auto destinos = grafo.find(i)->second;
-            for (int j = 1; j <= quantidade_vertices; j++) {
-                if (destinos.find(j) != destinos.end()) {
-                    value = IloRound(cplex.getValue(x[i - 1][j - 1]));
-                    printf("x[%d][%d]: %.0lf\n", i, j, value);
-                }
+        for (auto origem : grafo) {
+            for (auto destino : origem.second) {
+                IloNum value = cplex.getValue(x[origem.first][destino.first]);
+                cout
+                    << "x"
+                    << vertice_label[origem.first]
+                    << vertice_label[destino.first]
+                    << ": "
+                    << value
+                    << endl;
             }
         }
 
-        printf("\n");
+        cout << endl
+             << "Valor da solucao = " << objValue << endl;
 
-        cout << "Funcao Objetivo Valor = " << objValue << endl;
-        printf("(%.6lf seconds)\n", runTime);
+        std::cout << std::fixed;
+        std::cout << std::setprecision(6);
+        cout << "(" << difftime(timer2, timer) << " segundos)" << endl;
     }
 
     /*  -----------------------------------------
@@ -228,42 +212,6 @@ int main() {
         grafo[vertice_id[origem]][vertice_id[destino]] = aresta;
         grafo[vertice_id[destino]];
     }
-
-    for (int i = 0; i < quantidade_vertices; i++) {
-        cout << vertice_label[i] << endl;
-        for (auto destino : grafo[i]) {
-            cout
-                << "  -> "
-                << vertice_label[destino.first]
-                << " ("
-                << destino.second.custo
-                << ", "
-                << destino.second.minino
-                << ", "
-                << destino.second.maximo
-                << ")"
-                << endl;
-        }
-    }
-    cout << "\n";
-
-    cout << "Origem -> ";
-    for (auto s : S) {
-        cout << vertice_label[s.first] << " ";
-    }
-    cout << endl;
-
-    cout << "Transporte -> ";
-    for (int t : T) {
-        cout << vertice_label[t] << " ";
-    }
-    cout << endl;
-
-    cout << "Destino -> ";
-    for (auto d : D) {
-        cout << vertice_label[d.first] << " ";
-    }
-    cout << endl;
 
     cplex();
 }
