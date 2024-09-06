@@ -34,7 +34,7 @@ void cplex(){
     IloExpr sum(env);
 
     // Funcao objetivo -----------------------------
-    // Minimizar o custo das alocacoes
+    // Minimizar o custo das designacoes das tarefas
     for(int i = 0; i < quantidade_pessoas; i++){
         for(int j = 0; j < quantidade_tarefas; j++){
             sum += x[i][j] * custos[i][j];
@@ -129,6 +129,7 @@ void cplex(){
 
 int main() {
     cin >> quantidade_pessoas >> quantidade_tarefas;
+    // matriz de custos
     custos.resize(quantidade_pessoas, vector<int>(quantidade_tarefas));
 
     for(int i = 0; i < quantidade_pessoas; i++){
