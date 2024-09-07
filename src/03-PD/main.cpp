@@ -11,17 +11,14 @@ ILOSTLBEGIN
 int quantidade_pessoas, quantidade_tarefas;
 vector<vector<int>> custos;
 
-void cplex(){
+void cplex() {
     IloEnv env;
 
     /*  --------------------------------------------------
      *  Variaveis de decisao -----------------------------
      */
-    /*
 
-    *   Criação de um array de arrays (matriz bidimensional)
-    *   Cada posição do array terá um outro array do tamanho da quantidade de tarefas
-    */
+    // Cada posição do array tera um outro array do tamanho da quantidade de tarefas, binario
     IloArray<IloIntVarArray> x(env, quantidade_pessoas);
     for (int i = 0; i < quantidade_pessoas; i++) {
         x[i] = IloIntVarArray(env, quantidade_tarefas, 0, 1);
@@ -35,8 +32,8 @@ void cplex(){
 
     // Funcao objetivo -----------------------------
     // Minimizar o custo das designacoes das tarefas
-    for(int i = 0; i < quantidade_pessoas; i++){
-        for(int j = 0; j < quantidade_tarefas; j++){
+    for (int i = 0; i < quantidade_pessoas; i++) {
+        for (int j = 0; j < quantidade_tarefas; j++) {
             sum += x[i][j] * custos[i][j];
         }
     }
@@ -46,9 +43,9 @@ void cplex(){
     // Restricoes -----------------------------
 
     // Tarefa designada
-    for(int j = 0; j < quantidade_tarefas; j++) {
+    for (int j = 0; j < quantidade_tarefas; j++) {
         IloExpr sum(env);
-        for(int i = 0; i < quantidade_pessoas; i++) {
+        for (int i = 0; i < quantidade_pessoas; i++) {
             sum += x[i][j];
         }
         model.add(sum == 1);
@@ -95,27 +92,33 @@ void cplex(){
     }
 
     cout << endl
-         << endl
          << "Status da FO: " << status << endl;
 
     if (sol) {
         objValue = cplex.getObjValue();
         runTime = difftime(timer2, timer);
 
-        cout << "Variaveis de decisao: " << endl;
+        cout << endl
+             << "Variaveis de decisao: " << endl;
         for (int i = 0; i < quantidade_pessoas; i++) {
             for (int j = 0; j < quantidade_tarefas; j++) {
                 value = IloRound(cplex.getValue(x[i][j]));
-                if (value > 0) {
-                    printf("Pessoa %d atribuído à tarefa %d\n", i + 1, j + 1);
-                }
+                cout
+                    << "x"
+                    << i + 1
+                    << j + 1
+                    << ": "
+                    << value
+                    << endl;
             }
         }
 
-        printf("\n");
+        cout << endl
+             << "Valor da solucao = " << objValue << endl;
 
-        cout << "Funcao Objetivo Valor = " << objValue << endl;
-        printf("(%.6lf seconds)\n", runTime);
+        std::cout << std::fixed;
+        std::cout << std::setprecision(6);
+        cout << "(" << difftime(timer2, timer) << " segundos)" << endl;
     }
 
     /*  -----------------------------------------
@@ -128,17 +131,17 @@ void cplex(){
 }
 
 int main() {
+    // Primeira linha
     cin >> quantidade_pessoas >> quantidade_tarefas;
-    // matriz de custos
     custos.resize(quantidade_pessoas, vector<int>(quantidade_tarefas));
 
-    for(int i = 0; i < quantidade_pessoas; i++){
-        for(int j = 0; j < quantidade_tarefas; j++){
+    // Matriz de entrada
+    for (int i = 0; i < quantidade_pessoas; i++) {
+        for (int j = 0; j < quantidade_tarefas; j++) {
             cin >> custos[i][j];
         }
     }
 
-    // Solucao
     cplex();
 
     return 0;
