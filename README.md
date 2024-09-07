@@ -1,10 +1,10 @@
 # Problemas de Programação Linear
 
 ```cpp
-#define WORK "Trabalho - Problemas de Programação Linear"
-#define SUBJECT "Pesquisa Operacional"
+#define TRABALHO "Trabalho - Problemas de Programação Linear"
 #define PROFESSOR "Guilherme Pena"
-#define STUDENTS ["Gabriel de Paula", "Henrique Azevedo"]
+#define DISCIPLINA "Pesquisa Operacional"
+#define ESTUDANTES ["Gabriel de Paula", "Henrique Azevedo"]
 ```
 
 &nbsp;
@@ -23,23 +23,23 @@
 
 &nbsp;
 
-## 🖥 How to run
+## 🖥 Como executar
 
-> [Install ILOGCPLEX library](https://www.ibm.com/products/ilog-cplex-optimization-studio)
+> [Instale a biblioteca CPLEX](https://www.ibm.com/products/ilog-cplex-optimization-studio)
 
-Go to the problem folder:
+Vá para a pasta do problema:
 
 ```bash
 cd src/xx-xxxxx
 ```
 
-Create the executable:
+Compile o executável:
 
 ```bash
 make
 ```
 
-Run the executable:
+Execute o programa com a entrada:
 
 ```bash
 ./main.exe < input.txt
